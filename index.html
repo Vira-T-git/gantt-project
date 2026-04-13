@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>Gantt Project</title>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
 
   <style>
     body {
@@ -15,6 +16,12 @@
     #gantt {
       margin-top: 20px;
     }
+
+    button {
+      margin-right: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -22,16 +29,20 @@
 
 <h2>Project Gantt</h2>
 
+<button onclick="addTaskUI()">+ Add Task</button>
+<button onclick="deleteTaskUI()">🗑 Delete Task</button>
+
 <div id="gantt"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
 // --------------------
-// FIX: stable date formatting (no timezone shift)
+// DATE SAFE
 // --------------------
 function toDateString(d) {
   if (!d) return "";
@@ -39,6 +50,7 @@ function toDateString(d) {
   if (typeof d === "string" && d.length === 10) return d;
 
   const date = new Date(d);
+  if (isNaN(date)) return "";
 
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -48,9 +60,8 @@ function toDateString(d) {
 }
 
 // --------------------
-document.addEventListener("DOMContentLoaded", loadTasks);
+// LOAD
 // --------------------
-
 function loadTasks() {
   fetch(API_URL)
     .then(r => r.json())
@@ -65,22 +76,17 @@ function loadTasks() {
       }));
 
       render(tasks);
-    })
-    .catch(err => console.error("FETCH ERROR:", err));
+    });
 }
 
+// --------------------
+// RENDER
+// --------------------
 function render(tasks) {
 
-  const container = document.getElementById("gantt");
+  document.getElementById("gantt").innerHTML = "";
 
-  if (!container) {
-    console.error("Missing #gantt div");
-    return;
-  }
-
-  container.innerHTML = "";
-
-  new Gantt("#gantt", tasks, {
+  window.gantt = new Gantt("#gantt", tasks, {
     view_mode: "Day",
     readonly: false,
 
@@ -94,6 +100,9 @@ function render(tasks) {
   });
 }
 
+// --------------------
+// UPDATE (EXISTING)
+// --------------------
 function update(id, start, end, progress) {
 
   const url =
@@ -106,10 +115,63 @@ function update(id, start, end, progress) {
     .then(r => r.text())
     .then(res => {
       console.log("UPDATED:", res);
-      loadTasks(); // refresh sync
-    })
-    .catch(err => console.error("UPDATE ERROR:", err));
+      loadTasks();
+    });
 }
+
+// --------------------
+// ADD TASK
+// --------------------
+function addTaskUI() {
+
+  const task = prompt("Task name?");
+  const start = prompt("Start date (YYYY-MM-DD)");
+  const end = prompt("End date (YYYY-MM-DD)");
+
+  if (!task || !start || !end) return;
+
+  const id = Date.now();
+
+  const url =
+    `${API_URL}?action=add` +
+    `&id=${id}` +
+    `&task=${encodeURIComponent(task)}` +
+    `&start=${start}` +
+    `&end=${end}` +
+    `&progress=0`;
+
+  fetch(url)
+    .then(r => r.text())
+    .then(res => {
+      console.log(res);
+      loadTasks();
+    });
+}
+
+// --------------------
+// DELETE TASK
+// --------------------
+function deleteTaskUI() {
+
+  const id = prompt("Enter Task ID to delete:");
+
+  if (!id) return;
+
+  const url =
+    `${API_URL}?action=delete&id=${id}`;
+
+  fetch(url)
+    .then(r => r.text())
+    .then(res => {
+      console.log(res);
+      loadTasks();
+    });
+}
+
+// --------------------
+// INIT
+// --------------------
+window.addEventListener("load", loadTasks);
 
 </script>
 
