@@ -4,38 +4,46 @@
   <meta charset="UTF-8">
   <title>Project Gantt</title>
 
-  <!-- Frappe Gantt CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.7.0/dist/frappe-gantt.css">
+  <!-- Gantt CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
 
-  <!-- Frappe Gantt JS -->
-  <script src="https://unpkg.com/frappe-gantt@0.7.0/dist/frappe-gantt.min.js"></script>  <style>
+  <style>
     body {
       font-family: Arial;
       padding: 20px;
     }
   </style>
 </head>
+
 <body>
 
 <h2>Project Gantt</h2>
 <div id="gantt"></div>
 
+<!-- Load Gantt JS AFTER DOM -->
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+
 <script>
 
-window.onload = function() {
+// ✅ YOUR APPS SCRIPT URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
+// Format date
+function formatDate(date) {
+  let d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
 
-  function formatDate(date) {
-    let d = new Date(date);
-    return d.toISOString().split('T')[0];
-  }
+// Wait for full page load
+window.addEventListener("load", function () {
+
+  console.log("Gantt loaded?", typeof Gantt);
 
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
 
-      console.log("DATA FROM SHEET:", data);
+      console.log("DATA:", data);
 
       let tasks = data.map(item => ({
         id: item.id,
@@ -45,7 +53,7 @@ window.onload = function() {
         progress: Number(item.progress)
       }));
 
-      console.log("FORMATTED TASKS:", tasks);
+      console.log("TASKS:", tasks);
 
       let gantt = new Gantt("#gantt", tasks, {
         readonly: false,
@@ -57,7 +65,7 @@ window.onload = function() {
 
         on_progress_change: function(task, progress) {
           console.log("PROGRESS CHANGE:", task.id);
-          updateTask(task.id, task._start, task._end, progress);
+          updateTask(task.id, start, end, progress);
         }
       });
 
@@ -66,20 +74,13 @@ window.onload = function() {
       console.error("FETCH ERROR:", err);
     });
 
-};
+});
 
 
-// 🔁 Update function OUTSIDE
+// Update function
 function updateTask(id, start, end, progress) {
 
-  const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
-
-  function formatDate(date) {
-    let d = new Date(date);
-    return d.toISOString().split('T')[0];
-  }
-
-  console.log("SENDING UPDATE:", id);
+  console.log("UPDATING:", id);
 
   fetch(API_URL, {
     method: "POST",
@@ -95,7 +96,7 @@ function updateTask(id, start, end, progress) {
   })
   .then(res => res.text())
   .then(res => {
-    console.log("UPDATE RESPONSE:", res);
+    console.log("UPDATED:", res);
     alert("Task updated!");
   })
   .catch(err => {
@@ -105,3 +106,6 @@ function updateTask(id, start, end, progress) {
 }
 
 </script>
+
+</body>
+</html>
