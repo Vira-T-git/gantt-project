@@ -1,14 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Project Gantt</title>
+
+  <!-- Frappe Gantt CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt/dist/frappe-gantt.css">
+
+  <!-- Frappe Gantt JS -->
+  <script src="https://unpkg.com/frappe-gantt/dist/frappe-gantt.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Project Gantt</h2>
+<div id="gantt"></div>
+
 <script>
+
+// 🔁 PASTE YOUR APPS SCRIPT URL HERE
 const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
 
+// Format date properly
 function formatDate(date) {
   let d = new Date(date);
   return d.toISOString().split('T')[0];
 }
 
+// Load data from Google Sheets
 fetch(API_URL)
   .then(res => res.json())
   .then(data => {
+
+    console.log("DATA FROM SHEET:", data);
 
     let tasks = data.map(item => ({
       id: item.id,
@@ -18,30 +48,38 @@ fetch(API_URL)
       progress: Number(item.progress)
     }));
 
+    console.log("FORMATTED TASKS:", tasks);
+
     let gantt = new Gantt("#gantt", tasks, {
+      readonly: false,
 
       on_date_change: function(task, start, end) {
-        console.log("DATE CHANGE TRIGGERED", task);
-        alert("Date changed for task " + task.id);
-
+        console.log("DATE CHANGE:", task.id);
         updateTask(task.id, start, end, task.progress);
       },
 
-     on_progress_change: function(task, progress) {
-        console.log("PROGRESS CHANGE", task);
-        alert("Progress changed");
-
-       updateTask(task.id, task._start, task._end, progress);
+      on_progress_change: function(task, progress) {
+        console.log("PROGRESS CHANGE:", task.id);
+        updateTask(task.id, task._start, task._end, progress);
       }
-
     });
 
+  })
+  .catch(err => {
+    console.error("FETCH ERROR:", err);
   });
+
 
 // 🔁 Send update to Apps Script
 function updateTask(id, start, end, progress) {
+
+  console.log("SENDING UPDATE:", id, start, end, progress);
+
   fetch(API_URL, {
     method: "POST",
+    headers: {
+      "Content-Type": "text/plain"
+    },
     body: JSON.stringify({
       id: id,
       start: formatDate(start),
@@ -50,6 +88,17 @@ function updateTask(id, start, end, progress) {
     })
   })
   .then(res => res.text())
-  .then(res => console.log("Updated:", res));
+  .then(res => {
+    console.log("UPDATE RESPONSE:", res);
+    alert("Task updated!");
+  })
+  .catch(err => {
+    console.error("UPDATE ERROR:", err);
+    alert("Update failed!");
+  });
 }
+
 </script>
+
+</body>
+</html>
