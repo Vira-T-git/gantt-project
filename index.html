@@ -1,92 +1,51 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Gantt Sheet App</title>
+function doGet(e) {
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ProjectPlan");
+  const data = sheet.getDataRange().getValues();
 
-  <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
+  const headers = data[0];
+  const rows = data.slice(1);
+
+  const params = e.parameter;
+
+  // =========================
+  // UPDATE MODE
+  // =========================
+  if (params && params.id) {
+
+    const id = String(params.id);
+    const start = params.start;
+    const end = params.end;
+    const progress = params.progress;
+
+    for (let i = 0; i < rows.length; i++) {
+
+      if (String(rows[i][0]) === id) {
+
+        sheet.getRange(i + 2, 3).setValue(start);
+        sheet.getRange(i + 2, 4).setValue(end);
+        sheet.getRange(i + 2, 5).setValue(Number(progress));
+        sheet.getRange(i + 2, 8).setValue(new Date());
+
+        return ContentService
+          .createTextOutput("updated")
+          .setMimeType(ContentService.MimeType.TEXT);
+      }
     }
-    #gantt {
-      margin-top: 20px;
-    }
-  </style>
-</head>
 
-<body>
+    return ContentService.createTextOutput("id not found");
+  }
 
-<h2>Project Gantt</h2>
-<div id="gantt"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
-
-<script>
-
-const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
-
-// ✅ FIX: no timezone shift
-function formatDate(date) {
-  const d = new Date(date);
-  const local = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-  return local.toISOString().split("T")[0];
-}
-
-window.addEventListener("load", loadTasks);
-
-function loadTasks() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-
-      const tasks = data.map(t => ({
-        id: String(t.id),
-        name: t.task,
-        start: formatDate(t.start),
-        end: formatDate(t.end),
-        progress: Number(t.progress)
-      }));
-
-      renderGantt(tasks);
-    })
-    .catch(err => console.error(err));
-}
-
-function renderGantt(tasks) {
-
-  document.getElementById("gantt").innerHTML = "";
-
-  new Gantt("#gantt", tasks, {
-    view_mode: "Day",
-    readonly: false,
-
-    on_date_change: function(task, start, end) {
-      updateTask(task.id, start, end, task.progress);
-    },
-
-    on_progress_change: function(task, progress) {
-      updateTask(task.id, task.start, task.end, progress);
-    }
+  // =========================
+  // FETCH MODE
+  // =========================
+  const result = rows.map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
   });
+
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
 }
-
-function updateTask(id, start, end, progress) {
-
-  const url = `${API_URL}?id=${id}&start=${start}&end=${end}&progress=${progress}`;
-
-  fetch(url)
-    .then(res => res.text())
-    .then(res => {
-      console.log("UPDATED:", res);
-      loadTasks(); // refresh sync
-    })
-    .catch(err => console.error("UPDATE ERROR:", err));
-}
-
-</script>
-
-</body>
-</html>
