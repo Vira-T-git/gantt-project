@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Simple Gantt</title>
+  <meta charset="UTF-8" />
+  <title>Gantt Sheet App</title>
 
-  <!-- Gantt CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.css">
+  <!-- Frappe Gantt CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
 
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       padding: 20px;
+    }
+    #gantt {
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -20,66 +23,71 @@
 <h2>Project Gantt</h2>
 <div id="gantt"></div>
 
-<!-- Gantt JS -->
-<script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 
 <script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
-
-// Format date → YYYY-MM-DD
 function formatDate(date) {
-  let d = new Date(date);
-  return d.toISOString().split('T')[0];
+  return new Date(date).toISOString().split("T")[0];
 }
 
-window.onload = function () {
+let ganttInstance = null;
 
+window.addEventListener("load", () => {
+  loadTasks();
+});
+
+function loadTasks() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
 
-      let tasks = data.map(item => ({
-        id: String(item.id),
-        name: item.task,
-        start: formatDate(item.start),
-        end: formatDate(item.end),
-        progress: Number(item.progress)
+      const tasks = data.map(t => ({
+        id: String(t.id),
+        name: t.task,
+        start: formatDate(t.start),
+        end: formatDate(t.end),
+        progress: Number(t.progress)
       }));
 
-      let gantt = new Gantt("#gantt", tasks, {
-
-        readonly: false,
-
-        on_date_change: function(task, start, end) {
-          updateTask(task.id, start, end, task.progress);
-        },
-
-        on_progress_change: function(task, progress) {
-          updateTask(task.id, task._start, task._end, progress);
-        }
-
-      });
-
+      renderGantt(tasks);
     })
     .catch(err => console.error("FETCH ERROR:", err));
-};
+}
 
-// ✅ FIXED: uses GET (no CORS issue)
+function renderGantt(tasks) {
+
+  document.getElementById("gantt").innerHTML = "";
+
+  ganttInstance = new Gantt("#gantt", tasks, {
+    view_mode: "Day",
+    readonly: false,
+
+    on_date_change: function(task, start, end) {
+      updateTask(task.id, start, end, task.progress);
+    },
+
+    on_progress_change: function(task, progress) {
+      updateTask(task.id, task.start, task.end, progress);
+    }
+  });
+}
+
 function updateTask(id, start, end, progress) {
 
-  const url = API_URL +
-    "?id=" + encodeURIComponent(id) +
-    "&start=" + encodeURIComponent(formatDate(start)) +
-    "&end=" + encodeURIComponent(formatDate(end)) +
-    "&progress=" + encodeURIComponent(progress);
+  const url = `${API_URL}?id=${id}&start=${formatDate(start)}&end=${formatDate(end)}&progress=${progress}`;
 
   fetch(url)
     .then(res => res.text())
-    .then(res => console.log("UPDATED:", res))
+    .then(res => {
+      console.log("UPDATED:", res);
+
+      // reload fresh data so UI stays in sync
+      loadTasks();
+    })
     .catch(err => console.error("UPDATE ERROR:", err));
 }
-
 </script>
 
 </body>
