@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Gantt Project</title>
+  <title>Gantt</title>
 
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
@@ -26,14 +26,16 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
 // --------------------
-// DATE FORMAT FIX
+// SAFE DATE
 // --------------------
-function toDate(d) {
-  return new Date(d).toISOString().split("T")[0];
+function safeDate(d) {
+  const date = new Date(d);
+  if (isNaN(date)) return null;
+  return date.toISOString().split("T")[0];
 }
 
 // --------------------
-// LOAD DATA
+// LOAD
 // --------------------
 function loadTasks() {
 
@@ -41,31 +43,44 @@ function loadTasks() {
     .then(r => r.json())
     .then(data => {
 
-      const tasks = data.map(t => ({
-        id: t.id,
-        name: t.task,
-        start: toDate(t.start),
-        end: toDate(t.end),
-        progress: Number(t.progress || 0)
-      }));
+      const tasks = data
+        .map(t => {
+
+          const start = safeDate(t.start);
+          const end = safeDate(t.end);
+
+          if (!t.id || !t.task || !start || !end) return null;
+
+          return {
+            id: t.id,
+            name: t.task,
+            start,
+            end,
+            progress: Number(t.progress || 0)
+          };
+        })
+        .filter(Boolean); // remove bad rows
 
       renderGantt(tasks);
     });
 }
 
 // --------------------
-// RENDER GANTT
+// RENDER (FIXED $bar CRASH)
 // --------------------
 function renderGantt(tasks) {
 
-  document.getElementById("gantt").innerHTML = "";
+  const el = document.getElementById("gantt");
+
+  // IMPORTANT: FULL RESET
+  el.innerHTML = "";
 
   window.gantt = new Gantt("#gantt", tasks, {
 
     readonly: false,
 
     on_date_change: function(task, start, end) {
-      updateTask(task.id, start, end, task.progress);
+      updateTask(task.id, start, end, task.progress || 0);
     },
 
     on_progress_change: function(task, progress) {
@@ -75,14 +90,14 @@ function renderGantt(tasks) {
 }
 
 // --------------------
-// UPDATE BACKEND (IMPORTANT: GET ONLY)
+// UPDATE (GET ONLY)
 // --------------------
 function updateTask(id, start, end, progress) {
 
   const url =
     `${API_URL}?id=${id}` +
-    `&start=${toDate(start)}` +
-    `&end=${toDate(end)}` +
+    `&start=${safeDate(start)}` +
+    `&end=${safeDate(end)}` +
     `&progress=${progress}`;
 
   fetch(url)
@@ -90,7 +105,7 @@ function updateTask(id, start, end, progress) {
     .then(res => {
       console.log("UPDATED:", res);
     })
-    .catch(err => console.error("UPDATE FAILED:", err));
+    .catch(err => console.error("UPDATE FAIL:", err));
 }
 
 // --------------------
