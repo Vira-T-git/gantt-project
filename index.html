@@ -8,12 +8,15 @@
 
   <style>
     body { font-family: Arial; padding: 20px; }
-
-    #controls { margin-bottom: 15px; }
-
-    input, button { margin: 4px; padding: 6px; }
-
     #gantt { margin-top: 20px; }
+
+    .controls {
+      margin-bottom: 10px;
+    }
+
+    input {
+      margin: 4px;
+    }
   </style>
 </head>
 
@@ -21,16 +24,17 @@
 
 <h2>Project Gantt</h2>
 
-<!-- CONTROLS -->
-<div id="controls">
+<div class="controls">
   <input id="task" placeholder="Task">
   <input id="start" type="date">
   <input id="end" type="date">
   <input id="owner" placeholder="Owner">
-  <button onclick="addTask()">➕ Add</button>
+  <button onclick="addTask()">Add Task</button>
 
-  <input id="deleteId" placeholder="ID">
-  <button onclick="deleteTask()">🗑 Delete</button>
+  <br><br>
+
+  <input id="deleteId" placeholder="Task ID to delete">
+  <button onclick="deleteTask()">Delete Task</button>
 </div>
 
 <div id="gantt"></div>
@@ -41,14 +45,20 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
-// ================= DATE FIX =================
+// --------------------
 function toDateString(d) {
   if (!d) return "";
   if (typeof d === "string" && d.length === 10) return d;
-  return new Date(d).toISOString().split("T")[0];
+
+  const date = new Date(d);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${y}-${m}-${day}`;
 }
 
-// ================= LOAD =================
+// --------------------
 document.addEventListener("DOMContentLoaded", loadTasks);
 
 function loadTasks() {
@@ -65,18 +75,18 @@ function loadTasks() {
       }));
 
       render(tasks);
-    });
+    })
+    .catch(err => console.error(err));
 }
 
-// ================= RENDER =================
+// --------------------
 function render(tasks) {
 
-  const el = document.getElementById("gantt");
-  el.innerHTML = "";
+  const container = document.getElementById("gantt");
+  container.innerHTML = "";
 
   new Gantt("#gantt", tasks, {
     view_mode: "Day",
-    readonly: false,
 
     on_date_change: (task, start, end) => {
       update(task.id, start, end, task.progress);
@@ -88,42 +98,56 @@ function render(tasks) {
   });
 }
 
-// ================= UPDATE =================
+// --------------------
 function update(id, start, end, progress) {
 
   const url =
-    API_URL +
-    `?id=${id}` +
+    `${API_URL}?action=update&id=${id}` +
     `&start=${toDateString(start)}` +
     `&end=${toDateString(end)}` +
     `&progress=${progress}`;
 
   fetch(url)
-    .then(() => loadTasks());
+    .then(r => r.text())
+    .then(() => loadTasks())
+    .catch(err => console.error("UPDATE ERROR", err));
 }
 
-// ================= ADD (GET ONLY) =================
+// --------------------
 function addTask() {
 
+  const id = Date.now();
+
   const url =
-    API_URL +
-    `?action=add` +
-    `&id=${Date.now()}` +
-    `&task=${encodeURIComponent(task.value)}` +
-    `&start=${start.value}` +
-    `&end=${end.value}` +
+    `${API_URL}?action=add` +
+    `&id=${id}` +
+    `&task=${encodeURIComponent(document.getElementById("task").value)}` +
+    `&start=${document.getElementById("start").value}` +
+    `&end=${document.getElementById("end").value}` +
     `&progress=0` +
-    `&owner=${encodeURIComponent(owner.value)}` +
+    `&owner=${document.getElementById("owner").value}` +
     `&status=Not%20Started`;
 
-  fetch(url).then(() => loadTasks());
+  fetch(url)
+    .then(r => r.text())
+    .then(() => loadTasks())
+    .catch(err => console.error("ADD ERROR", err));
 }
 
-// ================= DELETE (GET ONLY) =================
+// --------------------
 function deleteTask() {
 
-  fetch(API_URL + `?action=delete&id=${deleteId.value}`)
-    .then(() => loadTasks());
+  const id = document.getElementById("deleteId").value;
+
+  const url = `${API_URL}?action=delete&id=${id}`;
+
+  fetch(url)
+    .then(r => r.text())
+    .then(res => {
+      console.log(res);
+      loadTasks();
+    })
+    .catch(err => console.error("DELETE ERROR", err));
 }
 
 </script>
