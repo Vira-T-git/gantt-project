@@ -23,56 +23,64 @@
 
 <script>
 
-// 🔁 PASTE YOUR APPS SCRIPT URL HERE
-const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
+window.onload = function() {
 
-// Format date properly
-function formatDate(date) {
-  let d = new Date(date);
-  return d.toISOString().split('T')[0];
-}
+  const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
 
-// Load data from Google Sheets
-fetch(API_URL)
-  .then(res => res.json())
-  .then(data => {
+  function formatDate(date) {
+    let d = new Date(date);
+    return d.toISOString().split('T')[0];
+  }
 
-    console.log("DATA FROM SHEET:", data);
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
 
-    let tasks = data.map(item => ({
-      id: item.id,
-      name: item.task,
-      start: formatDate(item.start),
-      end: formatDate(item.end),
-      progress: Number(item.progress)
-    }));
+      console.log("DATA FROM SHEET:", data);
 
-    console.log("FORMATTED TASKS:", tasks);
+      let tasks = data.map(item => ({
+        id: item.id,
+        name: item.task,
+        start: formatDate(item.start),
+        end: formatDate(item.end),
+        progress: Number(item.progress)
+      }));
 
-    let gantt = new Gantt("#gantt", tasks, {
-      readonly: false,
+      console.log("FORMATTED TASKS:", tasks);
 
-      on_date_change: function(task, start, end) {
-        console.log("DATE CHANGE:", task.id);
-        updateTask(task.id, start, end, task.progress);
-      },
+      let gantt = new Gantt("#gantt", tasks, {
+        readonly: false,
 
-      on_progress_change: function(task, progress) {
-        console.log("PROGRESS CHANGE:", task.id);
-        updateTask(task.id, task._start, task._end, progress);
-      }
+        on_date_change: function(task, start, end) {
+          console.log("DATE CHANGE:", task.id);
+          updateTask(task.id, start, end, task.progress);
+        },
+
+        on_progress_change: function(task, progress) {
+          console.log("PROGRESS CHANGE:", task.id);
+          updateTask(task.id, task._start, task._end, progress);
+        }
+      });
+
+    })
+    .catch(err => {
+      console.error("FETCH ERROR:", err);
     });
 
-  })
-  .catch(err => {
-    console.error("FETCH ERROR:", err);
-  });
+};
 
 
-// 🔁 Send update to Apps Script
+// 🔁 Update function OUTSIDE
 function updateTask(id, start, end, progress) {
 
-  console.log("SENDING UPDATE:", id, start, end, progress);
+  const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
+  function formatDate(date) {
+    let d = new Date(date);
+    return d.toISOString().split('T')[0];
+  }
+
+  console.log("SENDING UPDATE:", id);
 
   fetch(API_URL, {
     method: "POST",
@@ -98,6 +106,3 @@ function updateTask(id, start, end, progress) {
 }
 
 </script>
-
-</body>
-</html>
