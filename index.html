@@ -30,10 +30,11 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
-// --------------------
-// FIX: stable date formatting (no timezone shift)
-// --------------------
+// =========================
+// SAFE DATE FORMAT (no timezone shift)
+// =========================
 function toDateString(d) {
+
   if (!d) return "";
 
   if (typeof d === "string" && d.length === 10) return d;
@@ -47,11 +48,11 @@ function toDateString(d) {
   return `${y}-${m}-${day}`;
 }
 
-// --------------------
 document.addEventListener("DOMContentLoaded", loadTasks);
-// --------------------
 
+// =========================
 function loadTasks() {
+
   fetch(API_URL)
     .then(r => r.json())
     .then(data => {
@@ -69,6 +70,7 @@ function loadTasks() {
     .catch(err => console.error("FETCH ERROR:", err));
 }
 
+// =========================
 function render(tasks) {
 
   const container = document.getElementById("gantt");
@@ -87,28 +89,36 @@ function render(tasks) {
     on_date_change: (task, start, end) => {
       update(task.id, start, end, task.progress);
     },
-      
-   on_progress_change: (task, progress) => {
-      update(task.id, task._start, task._end, progress);
+
+    on_progress_change: (task, progress) => {
+      update(task.id, task._start || task.start, task._end || task.end, progress);
     }
   });
 }
 
+// =========================
+// POST UPDATE (FIXED)
+// =========================
 function update(id, start, end, progress) {
 
-  const url =
-    `${API_URL}?id=${id}` +
-    `&start=${toDateString(start)}` +
-    `&end=${toDateString(end)}` +
-    `&progress=${progress}`;
-
-  fetch(url)
-    .then(r => r.text())
-    .then(res => {
-      console.log("UPDATED:", res);
-      loadTasks(); // refresh sync
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain"
+    },
+    body: JSON.stringify({
+      id,
+      start: toDateString(start),
+      end: toDateString(end),
+      progress
     })
-    .catch(err => console.error("UPDATE ERROR:", err));
+  })
+  .then(r => r.text())
+  .then(res => {
+    console.log("UPDATED:", res);
+    loadTasks();
+  })
+  .catch(err => console.error("UPDATE ERROR:", err));
 }
 
 </script>
