@@ -21,11 +21,17 @@ fetch(API_URL)
     let gantt = new Gantt("#gantt", tasks, {
 
       on_date_change: function(task, start, end) {
+        console.log("DATE CHANGE TRIGGERED", task);
+        alert("Date changed for task " + task.id);
+
         updateTask(task.id, start, end, task.progress);
       },
 
-      on_progress_change: function(task, progress) {
-        updateTask(task.id, task._start, task._end, progress);
+     on_progress_change: function(task, progress) {
+        console.log("PROGRESS CHANGE", task);
+        alert("Progress changed");
+
+       updateTask(task.id, task._start, task._end, progress);
       }
 
     });
