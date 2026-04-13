@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
+</head>
+<body>
+
+<h3>Project Gantt</h3>
+<div id="gantt"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
+
+fetch(API_URL)
+  .then(res => res.json())
+  .then(data => {
+
+    let tasks = data.map(item => ({
+      id: item.id,
+      name: item.task,
+      start: item.start,
+      end: item.end,
+      progress: item.progress
+    }));
+
+    new Gantt("#gantt", tasks);
+  });
+</script>
+
+</body>
+</html>
