@@ -20,10 +20,11 @@
 <h2>Project Gantt</h2>
 <div id="gantt"></div>
 
-<!-- Gantt JS (global/UMD build) -->
+<!-- Gantt JS -->
 <script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
 
 <script>
+
 const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
 
 // Format date → YYYY-MM-DD
@@ -32,10 +33,7 @@ function formatDate(date) {
   return d.toISOString().split('T')[0];
 }
 
-// Load after page is ready
 window.onload = function () {
-
-  console.log("Gantt exists?", window.Gantt);
 
   fetch(API_URL)
     .then(res => res.json())
@@ -67,25 +65,21 @@ window.onload = function () {
     .catch(err => console.error("FETCH ERROR:", err));
 };
 
-// POST updates back to Apps Script
+// ✅ FIXED: uses GET (no CORS issue)
 function updateTask(id, start, end, progress) {
 
-  fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain"
-    },
-    body: JSON.stringify({
-      id: id,
-      start: formatDate(start),
-      end: formatDate(end),
-      progress: progress
-    })
-  })
-  .then(res => res.text())
-  .then(res => console.log("UPDATED:", res))
-  .catch(err => console.error("UPDATE ERROR:", err));
+  const url = API_URL +
+    "?id=" + encodeURIComponent(id) +
+    "&start=" + encodeURIComponent(formatDate(start)) +
+    "&end=" + encodeURIComponent(formatDate(end)) +
+    "&progress=" + encodeURIComponent(progress);
+
+  fetch(url)
+    .then(res => res.text())
+    .then(res => console.log("UPDATED:", res))
+    .catch(err => console.error("UPDATE ERROR:", err));
 }
+
 </script>
 
 </body>
