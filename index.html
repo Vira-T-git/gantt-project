@@ -9,14 +9,11 @@
   <style>
     body { font-family: Arial; padding: 20px; }
 
-    #controls {
-      margin-bottom: 15px;
-    }
+    #controls { margin-bottom: 15px; }
 
-    input, button {
-      margin: 4px;
-      padding: 6px;
-    }
+    input, button { margin: 4px; padding: 6px; }
+
+    #gantt { margin-top: 20px; }
   </style>
 </head>
 
@@ -24,19 +21,16 @@
 
 <h2>Project Gantt</h2>
 
-<!-- ================= CONTROLS ================= -->
+<!-- CONTROLS -->
 <div id="controls">
-
-  <input id="task" placeholder="Task name">
+  <input id="task" placeholder="Task">
   <input id="start" type="date">
   <input id="end" type="date">
   <input id="owner" placeholder="Owner">
+  <button onclick="addTask()">➕ Add</button>
 
-  <button onclick="addTask()">➕ Add Task</button>
-
-  <input id="deleteId" placeholder="Task ID">
-  <button onclick="deleteTask()">🗑 Delete Task</button>
-
+  <input id="deleteId" placeholder="ID">
+  <button onclick="deleteTask()">🗑 Delete</button>
 </div>
 
 <div id="gantt"></div>
@@ -47,13 +41,11 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
-// ================= DATE FIX (IMPORTANT) =================
+// ================= DATE FIX =================
 function toDateString(d) {
   if (!d) return "";
   if (typeof d === "string" && d.length === 10) return d;
-
-  const date = new Date(d);
-  return date.toISOString().split("T")[0];
+  return new Date(d).toISOString().split("T")[0];
 }
 
 // ================= LOAD =================
@@ -73,15 +65,14 @@ function loadTasks() {
       }));
 
       render(tasks);
-    })
-    .catch(err => console.error(err));
+    });
 }
 
 // ================= RENDER =================
 function render(tasks) {
 
-  const container = document.getElementById("gantt");
-  container.innerHTML = "";
+  const el = document.getElementById("gantt");
+  el.innerHTML = "";
 
   new Gantt("#gantt", tasks, {
     view_mode: "Day",
@@ -97,60 +88,42 @@ function render(tasks) {
   });
 }
 
-// ================= UPDATE (UNCHANGED LOGIC) =================
+// ================= UPDATE =================
 function update(id, start, end, progress) {
 
-  fetch(API_URL + `?id=${id}&start=${toDateString(start)}&end=${toDateString(end)}&progress=${progress}`)
-    .then(r => r.text())
-    .then(() => loadTasks())
-    .catch(err => console.error("UPDATE ERROR:", err));
+  const url =
+    API_URL +
+    `?id=${id}` +
+    `&start=${toDateString(start)}` +
+    `&end=${toDateString(end)}` +
+    `&progress=${progress}`;
+
+  fetch(url)
+    .then(() => loadTasks());
 }
 
-// ======================================================
-// 🔥 ADD TASK (NOW USES POST)
-// ======================================================
+// ================= ADD (GET ONLY) =================
 function addTask() {
 
-  const payload = {
-    action: "add",
-    id: Date.now(),
-    task: document.getElementById("task").value,
-    start: document.getElementById("start").value,
-    end: document.getElementById("end").value,
-    progress: 0,
-    owner: document.getElementById("owner").value,
-    status: "Not Started"
-  };
+  const url =
+    API_URL +
+    `?action=add` +
+    `&id=${Date.now()}` +
+    `&task=${encodeURIComponent(task.value)}` +
+    `&start=${start.value}` +
+    `&end=${end.value}` +
+    `&progress=0` +
+    `&owner=${encodeURIComponent(owner.value)}` +
+    `&status=Not%20Started`;
 
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  })
-  .then(r => r.text())
-  .then(() => loadTasks())
-  .catch(err => console.error("ADD ERROR:", err));
+  fetch(url).then(() => loadTasks());
 }
 
-// ======================================================
-// 🗑 DELETE TASK (NOW USES POST)
-// ======================================================
+// ================= DELETE (GET ONLY) =================
 function deleteTask() {
 
-  const id = document.getElementById("deleteId").value;
-
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "delete",
-      id: id
-    })
-  })
-  .then(r => r.text())
-  .then(res => {
-    console.log(res);
-    loadTasks();
-  })
-  .catch(err => console.error("DELETE ERROR:", err));
+  fetch(API_URL + `?action=delete&id=${deleteId.value}`)
+    .then(() => loadTasks());
 }
 
 </script>
