@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Gantt Sheet App</title>
 
-  <!-- Frappe Gantt CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       padding: 20px;
     }
     #gantt {
@@ -26,17 +25,17 @@
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 
 <script>
+
 const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
+// ✅ FIX: no timezone shift
 function formatDate(date) {
-  return new Date(date).toISOString().split("T")[0];
+  const d = new Date(date);
+  const local = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+  return local.toISOString().split("T")[0];
 }
 
-let ganttInstance = null;
-
-window.addEventListener("load", () => {
-  loadTasks();
-});
+window.addEventListener("load", loadTasks);
 
 function loadTasks() {
   fetch(API_URL)
@@ -53,14 +52,14 @@ function loadTasks() {
 
       renderGantt(tasks);
     })
-    .catch(err => console.error("FETCH ERROR:", err));
+    .catch(err => console.error(err));
 }
 
 function renderGantt(tasks) {
 
   document.getElementById("gantt").innerHTML = "";
 
-  ganttInstance = new Gantt("#gantt", tasks, {
+  new Gantt("#gantt", tasks, {
     view_mode: "Day",
     readonly: false,
 
@@ -76,18 +75,17 @@ function renderGantt(tasks) {
 
 function updateTask(id, start, end, progress) {
 
-  const url = `${API_URL}?id=${id}&start=${formatDate(start)}&end=${formatDate(end)}&progress=${progress}`;
+  const url = `${API_URL}?id=${id}&start=${start}&end=${end}&progress=${progress}`;
 
   fetch(url)
     .then(res => res.text())
     .then(res => {
       console.log("UPDATED:", res);
-
-      // reload fresh data so UI stays in sync
-      loadTasks();
+      loadTasks(); // refresh sync
     })
     .catch(err => console.error("UPDATE ERROR:", err));
 }
+
 </script>
 
 </body>
