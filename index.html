@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Project Gantt</title>
+  <title>Simple Gantt</title>
 
   <!-- Gantt CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.css">
 
   <style>
     body {
@@ -20,67 +20,55 @@
 <h2>Project Gantt</h2>
 <div id="gantt"></div>
 
-<!-- Load Gantt JS AFTER DOM -->
-<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<!-- Gantt JS (global/UMD build) -->
+<script src="https://unpkg.com/frappe-gantt@0.5.0/dist/frappe-gantt.min.js"></script>
 
 <script>
-
-// ✅ YOUR APPS SCRIPT URL
 const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
 
-// Format date
+// Format date → YYYY-MM-DD
 function formatDate(date) {
   let d = new Date(date);
   return d.toISOString().split('T')[0];
 }
 
-// Wait for full page load
-window.addEventListener("load", function () {
+// Load after page is ready
+window.onload = function () {
 
-  console.log("Gantt loaded?", typeof Gantt);
+  console.log("Gantt exists?", window.Gantt);
 
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
 
-      console.log("DATA:", data);
-
       let tasks = data.map(item => ({
-        id: item.id,
+        id: String(item.id),
         name: item.task,
         start: formatDate(item.start),
         end: formatDate(item.end),
         progress: Number(item.progress)
       }));
 
-      console.log("TASKS:", tasks);
-
       let gantt = new Gantt("#gantt", tasks, {
+
         readonly: false,
 
         on_date_change: function(task, start, end) {
-          console.log("DATE CHANGE:", task.id);
           updateTask(task.id, start, end, task.progress);
         },
 
         on_progress_change: function(task, progress) {
-          console.log("PROGRESS CHANGE:", task.id);
-          updateTask(task.id, start, end, progress);
+          updateTask(task.id, task._start, task._end, progress);
         }
+
       });
 
     })
-    .catch(err => {
-      console.error("FETCH ERROR:", err);
-    });
+    .catch(err => console.error("FETCH ERROR:", err));
+};
 
-});
-
-
-// Update function
+// POST updates back to Apps Script
 function updateTask(id, start, end, progress) {
-
-  console.log("UPDATING:", id);
 
   fetch(API_URL, {
     method: "POST",
@@ -95,16 +83,9 @@ function updateTask(id, start, end, progress) {
     })
   })
   .then(res => res.text())
-  .then(res => {
-    console.log("UPDATED:", res);
-    alert("Task updated!");
-  })
-  .catch(err => {
-    console.error("UPDATE ERROR:", err);
-    alert("Update failed!");
-  });
+  .then(res => console.log("UPDATED:", res))
+  .catch(err => console.error("UPDATE ERROR:", err));
 }
-
 </script>
 
 </body>
