@@ -1,16 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
-  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.umd.js"></script>
-</head>
-<body>
-
-<h3>Project Gantt</h3>
-<div id="gantt"></div>
-
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxunA7QowpwIc8UGNcDBw66bG7-bPgOYoJKqj6kiy95cpWnIKLMP5sgB4JJZG3Ot8g/exec";
+
+function formatDate(date) {
+  let d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
 
 fetch(API_URL)
   .then(res => res.json())
@@ -19,14 +13,37 @@ fetch(API_URL)
     let tasks = data.map(item => ({
       id: item.id,
       name: item.task,
-      start: item.start,
-      end: item.end,
-      progress: item.progress
+      start: formatDate(item.start),
+      end: formatDate(item.end),
+      progress: Number(item.progress)
     }));
 
-    new Gantt("#gantt", tasks);
-  });
-</script>
+    let gantt = new Gantt("#gantt", tasks, {
 
-</body>
-</html>
+      on_date_change: function(task, start, end) {
+        updateTask(task.id, start, end, task.progress);
+      },
+
+      on_progress_change: function(task, progress) {
+        updateTask(task.id, task._start, task._end, progress);
+      }
+
+    });
+
+  });
+
+// 🔁 Send update to Apps Script
+function updateTask(id, start, end, progress) {
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      id: id,
+      start: formatDate(start),
+      end: formatDate(end),
+      progress: progress
+    })
+  })
+  .then(res => res.text())
+  .then(res => console.log("Updated:", res));
+}
+</script>
