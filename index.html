@@ -87,9 +87,9 @@ function render(tasks) {
     on_date_change: (task, start, end) => {
       update(task.id, start, end, task.progress);
     },
-
-    on_progress_change: (task, progress) => {
-      update(task.id, task.start, task.end, progress);
+      
+   on_progress_change: (task, progress) => {
+      update(task.id, task._start, task._end, progress);
     }
   });
 }
