@@ -1,33 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Gantt Project</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+
+    #gantt {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Project Gantt</h2>
+
+<div id="gantt"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwwTTsvFxY26jIw-xs-NPuXHW5HqoGTpi-yyrNpH3YYW1b427clYjVm25kZNpNbWC2O/exec";
 
-// =========================
-// FIX: Safe date handling (NO timezone shift)
-// =========================
+// --------------------
+// FIX: stable date formatting (no timezone shift)
+// --------------------
 function toDateString(d) {
   if (!d) return "";
 
-  if (typeof d === "string" && d.length === 10) {
-    return d;
-  }
+  if (typeof d === "string" && d.length === 10) return d;
 
   const date = new Date(d);
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
 
-  return `${year}-${month}-${day}`;
+  return `${y}-${m}-${day}`;
 }
 
-// =========================
-window.addEventListener("load", loadTasks);
-// =========================
+// --------------------
+document.addEventListener("DOMContentLoaded", loadTasks);
+// --------------------
 
 function loadTasks() {
   fetch(API_URL)
-    .then(res => res.json())
+    .then(r => r.json())
     .then(data => {
 
       const tasks = data.map(t => ({
@@ -38,39 +64,37 @@ function loadTasks() {
         progress: Number(t.progress)
       }));
 
-      renderGantt(tasks);
+      render(tasks);
     })
     .catch(err => console.error("FETCH ERROR:", err));
 }
 
-function renderGantt(tasks) {
+function render(tasks) {
 
-  document.getElementById("gantt").innerHTML = "";
+  const container = document.getElementById("gantt");
+
+  if (!container) {
+    console.error("Missing #gantt div");
+    return;
+  }
+
+  container.innerHTML = "";
 
   new Gantt("#gantt", tasks, {
     view_mode: "Day",
     readonly: false,
 
-    // =========================
-    // DATE CHANGE
-    // =========================
-    on_date_change: function(task, start, end) {
-      updateTask(task.id, start, end, task.progress);
+    on_date_change: (task, start, end) => {
+      update(task.id, start, end, task.progress);
     },
 
-    // =========================
-    // PROGRESS CHANGE
-    // =========================
-    on_progress_change: function(task, progress) {
-      updateTask(task.id, task.start, task.end, progress);
+    on_progress_change: (task, progress) => {
+      update(task.id, task.start, task.end, progress);
     }
   });
 }
 
-// =========================
-// UPDATE API CALL
-// =========================
-function updateTask(id, start, end, progress) {
+function update(id, start, end, progress) {
 
   const url =
     `${API_URL}?id=${id}` +
@@ -79,7 +103,7 @@ function updateTask(id, start, end, progress) {
     `&progress=${progress}`;
 
   fetch(url)
-    .then(res => res.text())
+    .then(r => r.text())
     .then(res => {
       console.log("UPDATED:", res);
       loadTasks(); // refresh sync
@@ -88,3 +112,6 @@ function updateTask(id, start, end, progress) {
 }
 
 </script>
+
+</body>
+</html>
